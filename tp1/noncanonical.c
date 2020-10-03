@@ -21,7 +21,7 @@ int main(int argc, char** argv)
 
     if ( (argc < 2) || 
   	     ((strcmp("/dev/ttyS10", argv[1])!=0) && 
-  	      (strcmp("/dev/ttyS11", argv[1])!=0) )) {
+  	      (strcmp("/dev/ttyS11", argv[1])!=0) ) ) {
       printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
       exit(1);
     }
@@ -50,7 +50,7 @@ int main(int argc, char** argv)
     newtio.c_lflag = 0;
 
     newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
+    newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
 
 
 
@@ -58,11 +58,7 @@ int main(int argc, char** argv)
     VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
     leitura do(s) pr�ximo(s) caracter(es)
   */
-    char data[255];
 
-    gets(data);
-
-    res = write(fd, data, sizeof(data));
 
 
     tcflush(fd, TCIOFLUSH);
@@ -74,13 +70,35 @@ int main(int argc, char** argv)
 
     printf("New termios structure set\n");
 
+    
+    // while (STOP==FALSE) {       /* loop for input */
+    //   res = read(fd,buf,255);   /* returns after 5 chars have been input */
+    //   buf[res]=0;               /* so we can printf... */
+    //   printf(":%s:%d\n", buf, res);
+    //   if (buf[0]=='z') STOP=TRUE;
+    // }
 
-    while (STOP==FALSE) {       /* loop for input */
-      res = read(fd,buf,255);   /* returns after 5 chars have been input */
-      buf[res]=0;               /* so we can printf... */
-      printf(":%s:%d\n", buf, res);
-      if (buf[0]=='z') STOP=TRUE;
+    //ler um a um
+    int stop = 0;
+    int i = 0;
+    while(!stop)
+    {
+      res = read(fd, &buf[i], 1);
+      if(buf[i] == '\0')
+        stop = 1;
+      i++;
     }
+
+    printf("%s\n", buf);
+
+    res = write(fd, buf, i);
+
+    // int i = 0;
+    // while(input[i] != '\0')
+    // {
+    //   res = read(fd, input, 1);
+      
+    // }
 
 
 
@@ -90,6 +108,7 @@ int main(int argc, char** argv)
 
 
 
+    sleep(1);
     tcsetattr(fd,TCSANOW,&oldtio);
     close(fd);
     return 0;
