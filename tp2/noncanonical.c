@@ -11,13 +11,48 @@
 #define FALSE 0
 #define TRUE 1
 
+
+#define FLAG 0x7e
+#define A_RCV_RSP 0x03
+#define A_RCV_CMD 0x01
+#define A_SND_CMD 0x03
+#define A_SND_RSP 0x01
+
+#define SET 0x03
+#define UA 0x07
+
+
+void send_cmd(int fd, char a, char c){
+	unsigned char buf[5];
+    buf[0]=FLAG;
+    buf[1]=a;
+    buf[2]=c;
+    buf[3]=a ^ c;
+    buf[4]=FLAG;
+    write(fd,buf,5);
+}
+
+void send_ua(int fd)
+{
+  	unsigned char buf[5];
+    buf[0]=FLAG;
+    buf[1]=A_RCV_CMD;
+    buf[2]=UA;
+    buf[3]=A_RCV_CMD^ UA;
+    buf[4]=FLAG;
+    write(fd,buf,5);
+
+    printf("wrote %x %x %x %x %x\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
+
+}
+
 volatile int STOP=FALSE;
 
 int main(int argc, char** argv)
 {
     int fd,c, res;
     struct termios oldtio,newtio;
-    char buf[255];
+    char buf[6];
 
     if ( (argc < 2) || 
   	     ((strcmp("/dev/ttyS10", argv[1])!=0) && 
@@ -49,8 +84,8 @@ int main(int argc, char** argv)
     /* set input mode (non-canonical, no echo,...) */
     newtio.c_lflag = 0;
 
-    newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
+    newtio.c_cc[VTIME]    = 3;   /* inter-character timer unused */
+    newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
 
 
 
@@ -70,41 +105,9 @@ int main(int argc, char** argv)
 
     printf("New termios structure set\n");
 
-    
-    // while (STOP==FALSE) {       /* loop for input */
-    //   res = read(fd,buf,255);   /* returns after 5 chars have been input */
-    //   buf[res]=0;               /* so we can printf... */
-    //   printf(":%s:%d\n", buf, res);
-    //   if (buf[0]=='z') STOP=TRUE;
-    // }
+    res=read(fd,buf,6);
 
-    //ler um a um
-    int stop = 0;
-    int i = 0;
-    while(!stop)
-    {
-      res = read(fd, &buf[i], 1);
-      if(buf[i] == '\0')
-        stop = 1;
-      i++;
-    }
-
-    printf("%s\n", buf);
-
-    res = write(fd, buf, i);
-
-    // int i = 0;
-    // while(input[i] != '\0')
-    // {
-    //   res = read(fd, input, 1);
-      
-    // }
-
-
-
-  /* 
-    O ciclo WHILE deve ser alterado de modo a respeitar o indicado no gui�o 
-  */
+    send_ua(fd);
 
 
 

@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <signal.h>
 #include <stdio.h>
 
 #define BAUDRATE B38400
@@ -12,7 +13,57 @@
 #define FALSE 0
 #define TRUE 1
 
+
+#define FLAG 0x7e
+#define A_RCV_RSP 0x03
+#define A_RCV_CMD 0x01
+#define A_SND_CMD 0x03
+#define A_SND_RSP 0x01
+
+#define SET 0x03
+#define UA 0x07
+
 volatile int STOP=FALSE;
+
+int flag=1, conta=1;
+
+void atende()                   // atende alarme
+{
+	printf("alarme # %d\n", conta);
+	flag=1;
+	conta++;
+}
+
+void send_cmd(int fd, char a, char c){
+	unsigned char buf[5];
+    buf[0]=FLAG;
+    buf[1]=a;
+    buf[2]=c;
+    buf[3]=a ^ c;
+    buf[4]=FLAG;
+    write(fd,buf,5);
+}
+
+void send_set(int fd)
+{
+    	unsigned char buf[5];
+    buf[0]=FLAG;
+    buf[1]=0x03;
+    buf[2]=SET;
+    buf[3]=0x03 ^SET;
+    buf[4]=FLAG;
+    write(fd,buf,5);
+   printf("sent %x %x %x %x %x\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
+}
+
+
+
+
+int compare_flags(char * buf){
+  return buf[0]==FLAG && buf[1]==A_SND_RSP && buf[2]==UA && (buf[3]==A_SND_RSP ^ UA) && buf[4]==FLAG;
+}
+
+
 
 int main(int argc, char** argv)
 {
@@ -54,7 +105,7 @@ int main(int argc, char** argv)
     newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
     newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
 
-
+    (void) signal(SIGALRM, atende); 
 
   /* 
     VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
@@ -72,41 +123,26 @@ int main(int argc, char** argv)
 
     printf("New termios structure set\n");
 
-    char input[50];
-    gets(input);
-
-    int counter = 0;
-    for (int i = 0; i < 50; i++)
-    {
-      counter++;
-      if(input[i] == '\0')
-        break;
-    }
-    printf("counter: %d\n", counter);
-
-    res = write(fd, input, counter);
-    printf("wrote input\n");
-    char output[counter];
-    res = read(fd, output, counter);
-    printf("%s \n", output);
-
-    /*
-    for (i = 0; i < 255; i++) {
-      buf[i] = 'a';
-    }
+ 
     
-    /*testing*/
-    /*
-    buf[25] = '\n';
-    
-    res = write(fd,buf,255);   
-    printf("%d bytes written\n", res);
-    */
+    while(conta < 4){
+      send_set(fd);
+      if(flag){
+          alarm(3);                 // activa alarme de 3s
+          flag=0;
+          res=read(fd,buf,5);
+          
+          if(compare_flags(buf)){
+            printf("UA recebido com sucesso.\n");
 
-  /* 
-    O ciclo FOR e as instru��es seguintes devem ser alterados de modo a respeitar 
-    o indicado no gui�o 
-  */
+            break;
+          }
+          sleep(3);
+  
+      }
+    }
+   if(conta >3 )printf("UA não recebido .\n");
+
 
 
 
