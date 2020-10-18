@@ -2,7 +2,13 @@
 
 
 
+#define FALSE 0
+#define TRUE 1
+
+
 #define FLAG 0x7e
+
+
 
 //A
 #define A_CMD_EMISSOR 0x03
@@ -15,3 +21,7 @@
 #define DISC 0x0b
 #define UA 0x07
 
+
+
+#define BYTE_STUFF 0x20
+#define ESC 0x7d

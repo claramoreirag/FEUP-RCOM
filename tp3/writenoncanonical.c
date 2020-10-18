@@ -1,67 +1,102 @@
 /*Non-Canonical Input Processing*/
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <signal.h>
-#include <stdio.h>
-
-#define BAUDRATE B38400
-#define MODEMDEVICE "/dev/ttyS1"
-#define _POSIX_SOURCE 1 /* POSIX compliant source */
-#define FALSE 0
-#define TRUE 1
+#include "writenoncanonical.h"
 
 
-#define FLAG 0x7e
-#define A_RCV_RSP 0x03
-#define A_RCV_CMD 0x01
-#define A_SND_CMD 0x03
-#define A_SND_RSP 0x01
 
-#define SET 0x03
-#define UA 0x07
 
-volatile int STOP=FALSE;
-
-int flag=1, conta=1;
+int resend=0, conta=0;
 
 void atende()                   // atende alarme
 {
 	printf("alarme # %d\n", conta);
-	flag=1;
-	conta++;
-}
-
-void send_cmd(int fd, char a, char c){
-	unsigned char buf[5];
-    buf[0]=FLAG;
-    buf[1]=a;
-    buf[2]=c;
-    buf[3]=a ^ c;
-    buf[4]=FLAG;
-    write(fd,buf,5);
+	resend=1;
 }
 
 void send_set(int fd)
 {
-    	unsigned char buf[5];
+    unsigned char buf[5];
     buf[0]=FLAG;
     buf[1]=0x03;
     buf[2]=SET;
     buf[3]=0x03 ^SET;
     buf[4]=FLAG;
     write(fd,buf,5);
-   printf("sent %x %x %x %x %x\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
+   printf("SET sent %x %x %x %x %x\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
 }
-
-
 
 
 int compare_flags(char * buf){
   return buf[0]==FLAG && buf[1]==A_SND_RSP && buf[2]==UA && (buf[3]==A_SND_RSP ^ UA) && buf[4]==FLAG;
 }
+
+void assembleStateMachine(StateMachine *machine){
+  
+  machine->state = START;
+  machine->flag = FLAG;
+  machine->a = A_RSP_RECETOR;
+  machine->c = UA;
+  
+}
+
+int byte_stuffing(char* buf, char *res){
+
+  int j=0; 
+  for(int i=0; i<strlen(buf);i++){
+    if(buf[i]==FLAG){
+      res[j]=ESC;
+      res[++j]=FLAG^BYTE_STUFF;
+    }
+    else if(buf[i]==ESC){
+      res[j]=ESC;
+      res[++j]=ESC^BYTE_STUFF;
+    }
+    else{
+      res[j]=buf[i];
+    }
+    j++;
+  }
+ 
+  return 0;
+
+}
+
+int byte_destuffing(char* buf, char *res){
+
+  int j=0; 
+  for(int i=0; i<strlen(buf);i++){
+    if(buf[i]==ESC && buf[i+1]==(FLAG^BYTE_STUFF)){
+        i++;
+        res[j]=FLAG;
+    }
+    else if(buf[i]==ESC && buf[i+1]==(ESC^BYTE_STUFF)){
+      i++;
+      res[j]=ESC;
+    }
+    else
+      res[j]=buf[i];
+    
+    j++;
+  }
+  
+  return 0;
+
+}
+
+int createInfoFrame(char * buf, int s){
+  char res[255];
+  byte_stuffing(buf,res);
+  char frame[255];
+  frame[0]=FLAG;
+  frame[1]=A_CMD_EMISSOR;
+  if(s==0)frame[2]=0x00;
+  else frame[2]=0x40;
+  for(int i=0; i<strlen(res);i++){
+    frame[i+3]=res[i];
+  }
+
+}
+
 
 
 
@@ -73,7 +108,8 @@ int main(int argc, char** argv)
     int i, sum = 0, speed = 0;
     
     if ( (argc < 2) || 
-  	     ((strcmp("/dev/ttyS10", argv[1])!=0) && 
+  	     ((strcmp("/dev/ttyS0", argv[1])!=0) &&
+        (strcmp("/dev/ttyS1", argv[1])!=0) && (strcmp("/dev/ttyS10", argv[1])!=0) && 
   	      (strcmp("/dev/ttyS11", argv[1])!=0) )) {
       printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
       exit(1);
@@ -125,23 +161,36 @@ int main(int argc, char** argv)
 
  
     
-    while(conta < 4){
-      send_set(fd);
-      if(flag){
-          alarm(3);                 // activa alarme de 3s
-          flag=0;
-          res=read(fd,buf,5);
-          
-          if(compare_flags(buf)){
-            printf("UA recebido com sucesso.\n");
+    StateMachine machine;
+    assembleStateMachine(&machine);
 
-            break;
-          }
-          sleep(3);
-  
+    do {
+      conta++;
+      i=0;
+      resend = 0;
+
+      printf("Before send set\n");
+      send_set(fd);
+
+      alarm(3);
+
+      while (machine.state != STOP && !resend) {       /* loop for input */
+        
+        res = read(fd,&buf[i],1);   /* returns after 1 char has been input */
+        if (res == 0) continue;
+        printf("byte: %x\n", buf[i]);
+        machine.byte = buf[i];
+        changeState(&machine);
+        i++;
       }
-    }
-   if(conta >3 )printf("UA não recebido .\n");
+
+    } while (conta< 3 && machine.state != STOP);
+
+    
+    if(conta>=3)printf("UA not received \n");
+    else printf("UA received \n");
+
+
 
 
 

@@ -1,50 +1,23 @@
+#include "noncanonical.h"
+
 /*Non-Canonical Input Processing*/
-#pragma once
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <stdio.h>
-#include "statemachine.h"
-
-#define BAUDRATE B38400
-#define _POSIX_SOURCE 1 /* POSIX compliant source */
-#define FALSE 0
-#define TRUE 1
 
 
-#define FLAG 0x7e
-#define A_RCV_RSP 0x03
-#define A_RCV_CMD 0x01
-#define A_SND_CMD 0x03
-#define A_SND_RSP 0x01
-
-#define SET 0x03
-#define UA 0x07
 
 
-void send_cmd(int fd, char a, char c){
-	unsigned char buf[5];
-    buf[0]=FLAG;
-    buf[1]=a;
-    buf[2]=c;
-    buf[3]=a ^ c;
-    buf[4]=FLAG;
-    write(fd,buf,5);
-}
+
 
 void send_ua(int fd)
 {
   	unsigned char buf[5];
     buf[0]=FLAG;
-    buf[1]=A_RCV_CMD;
+    buf[1]=A_RSP_RECETOR;
     buf[2]=UA;
-    buf[3]=A_RCV_CMD^ UA;
+    buf[3]=A_RSP_RECETOR^ UA;
     buf[4]=FLAG;
     write(fd,buf,5);
 
-    printf("wrote %x %x %x %x %x\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
+    printf("UA sent: %x %x %x %x %x\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
 
 }
 
@@ -52,18 +25,17 @@ void assembleStateMachine(StateMachine *machine){
   
   machine->state = START;
   machine->flag = FLAG;
-  machine->a = 0x03;
-  machine->c = 0x03;
+  machine->a = A_CMD_EMISSOR;
+  machine->c = SET;
   
 }
 
-volatile int STOP=FALSE;
 
 int main(int argc, char** argv)
 {
     int fd,c, res;
     struct termios oldtio,newtio;
-    char buf[6];
+
 
     if ( (argc < 2) || 
   	     ((strcmp("/dev/ttyS10", argv[1])!=0) && 
@@ -95,7 +67,7 @@ int main(int argc, char** argv)
     /* set input mode (non-canonical, no echo,...) */
     newtio.c_lflag = 0;
 
-    newtio.c_cc[VTIME]    = 3;   /* inter-character timer unused */
+    newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
     newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
 
 
@@ -117,17 +89,23 @@ int main(int argc, char** argv)
     printf("New termios structure set\n");
 
 
-    char buf[255];
+    StateMachine machine;
+    assembleStateMachine(&machine);
 
+    char buf[255];
+   
     int stop = 0;
     int i = 0;
     while(!stop)
     {
       res = read(fd, &buf[i], 1);
-      if(buf[i] == '\0')
-        stop = 1;
+      printf("byte read: %x\n", buf[i]);
+      machine.byte = buf[i];
+      changeState(&machine);
+      if(machine.state==STOP)stop = 1;
       i++;
     }
+    printf("SET received! \n");
 
     send_ua(fd);
 

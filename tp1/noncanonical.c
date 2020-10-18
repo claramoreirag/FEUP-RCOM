@@ -13,13 +13,16 @@
 
 volatile int STOP=FALSE;
 
+
+
 int main(int argc, char** argv)
 {
     int fd,c, res;
     struct termios oldtio,newtio;
     char buf[255];
 
-    if ( (argc < 2) || 
+    if ( (argc < 2) || (strcmp("/dev/ttyS0", argv[1])!=0) &&
+        (strcmp("/dev/ttyS1", argv[1])!=0) && 
   	     ((strcmp("/dev/ttyS10", argv[1])!=0) && 
   	      (strcmp("/dev/ttyS11", argv[1])!=0) ) ) {
       printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
@@ -71,6 +74,10 @@ int main(int argc, char** argv)
     printf("New termios structure set\n");
 
     
+
+
+
+
     // while (STOP==FALSE) {       /* loop for input */
     //   res = read(fd,buf,255);   /* returns after 5 chars have been input */
     //   buf[res]=0;               /* so we can printf... */
@@ -79,13 +86,16 @@ int main(int argc, char** argv)
     // }
 
     //ler um a um
+
+
     int stop = 0;
     int i = 0;
     while(!stop)
     {
       res = read(fd, &buf[i], 1);
-      if(buf[i] == '\0')
-        stop = 1;
+
+      if(buf[i] == '\0')stop = 1;
+
       i++;
     }
 
