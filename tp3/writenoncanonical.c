@@ -3,7 +3,7 @@
 #include "writenoncanonical.h"
 
 
-
+int ns=0;
 
 int resend=0, conta=0;
 
@@ -23,11 +23,6 @@ void send_set(int fd)
     buf[4]=FLAG;
     write(fd,buf,5);
    printf("SET sent %x %x %x %x %x\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
-}
-
-
-int compare_flags(char * buf){
-  return buf[0]==FLAG && buf[1]==A_SND_RSP && buf[2]==UA && (buf[3]==A_SND_RSP ^ UA) && buf[4]==FLAG;
 }
 
 void assembleStateMachine(StateMachine *machine){
@@ -83,10 +78,13 @@ int byte_destuffing(char* buf, char *res){
 
 }
 
-int createInfoFrame(char * buf, int s){
+
+
+
+
+int createInfoFrame(char * buf, int s, char * frame){
   char res[255];
   byte_stuffing(buf,res);
-  char frame[255];
   frame[0]=FLAG;
   frame[1]=A_CMD_EMISSOR;
   if(s==0)frame[2]=0x00;
@@ -94,7 +92,14 @@ int createInfoFrame(char * buf, int s){
   for(int i=0; i<strlen(res);i++){
     frame[i+3]=res[i];
   }
-
+  char bcc;
+  for(int i=0;i<strlen(buf);i++){
+    bcc=bcc^ buf[i];
+  }
+  frame[2+strlen(res)]=bcc;
+  frame[3+strlen(res)]=FLAG;
+  
+  return 0;
 }
 
 
@@ -138,8 +143,8 @@ int main(int argc, char** argv)
     /* set input mode (non-canonical, no echo,...) */
     newtio.c_lflag = 0;
 
-    newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
+    newtio.c_cc[VTIME]    = 5;   /* inter-character timer unused */
+    newtio.c_cc[VMIN]     = 0;   /* blocking read until 5 chars received */
 
     (void) signal(SIGALRM, atende); 
 
@@ -187,7 +192,16 @@ int main(int argc, char** argv)
     } while (conta< 3 && machine.state != STOP);
 
     
-    if(conta>=3)printf("UA not received \n");
+    if(conta>=3){
+      printf("UA not received \n");
+      sleep(1);
+      if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
+        perror("tcsetattr");
+        exit(-1);
+      }
+      close(fd);
+      return 0;
+    }
     else printf("UA received \n");
 
 
