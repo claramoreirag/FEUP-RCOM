@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "macros.h"
 #include "statemachine.h"
+#include "data_link.h"
 
 #define BAUDRATE B38400
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
@@ -18,8 +19,5 @@
 
 
 
-void assembleStateMachine(StateMachine *machine);
-
-void send_ua(int fd);
 
 int main(int argc, char** argv);

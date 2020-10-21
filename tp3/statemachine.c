@@ -50,3 +50,12 @@ void changeState(StateMachine *machine){
     }
     printf("Current state: %d \n",machine->state);
 }
+
+
+void assembleStateMachine(StateMachine *machine, char a, char c){
+
+  machine->state = START;
+  machine->flag = FLAG;
+  machine->a = a;
+  machine->c = c;
+}

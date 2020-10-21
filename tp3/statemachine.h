@@ -36,3 +36,4 @@ typedef struct StateMachine{
 void changeState(StateMachine *machine);
 
 
+void assembleStateMachine(StateMachine *machine, char a, char c);

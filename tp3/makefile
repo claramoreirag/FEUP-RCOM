@@ -2,12 +2,12 @@ all: emissor recetor
 CC = gcc
 CFLAGS = -Wall
 
-OBJS=noncanonical.o statemachine.o writenoncanonical.o
+OBJS=noncanonical.o statemachine.o writenoncanonical.o data_link.o
 
-SRCS_R = statemachine.c noncanonical.c 
+SRCS_R = statemachine.c noncanonical.c data_link.c
 OBJS_R= $(SRCS:.c=.o)
 
-SRCS_E =statemachine.c writenoncanonical.c 
+SRCS_E =statemachine.c writenoncanonical.c data_link.c
 OBJS_E= $(SRCS:.c=.o)
 %.o:%.c
 	$(CC) -c $(CFLAGS) $< -o $@

@@ -25,3 +25,8 @@
 
 #define BYTE_STUFF 0x20
 #define ESC 0x7d
+
+
+
+#define TRANSMITTER 0
+#define RECEIVER 1
