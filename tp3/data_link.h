@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include "macros.h"
 #include "statemachine.h"
+#include "utils.h"
 
 #define BAUDRATE B38400
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
@@ -15,19 +16,7 @@
 void atende();
 
 
-void send_ua(int fd);
-
-void send_set(int fd);
-
-int compare_flags(char * buf);
-
-
-
 int main(int argc, char** argv);
-
-int createInfoFrame(char * buf, int s, char * frame);
-
-int byte_stuffing(char* buf, char *res);
 
 
 

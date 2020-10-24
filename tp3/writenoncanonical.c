@@ -19,8 +19,8 @@ int main(int argc, char** argv)
   }
 
    int fd=llopen(argv[1], TRANSMITTER);
-
-
+   char info[255]="hello";
+   llwrite(fd,info,strlen(info));
     close(fd);
     return 0;
 }

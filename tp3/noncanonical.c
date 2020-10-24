@@ -3,10 +3,6 @@
 /*Non-Canonical Input Processing*/
 
 
-
-
-
-
 int main(int argc, char** argv)
 {
     
@@ -21,6 +17,11 @@ int main(int argc, char** argv)
 
    int fd=llopen(argv[1], RECEIVER);
 
+    char res[255];
+    int r=llread(fd,res);
+    printf("info read: %s, return: %d",res,r);
     close(fd);
     return 0;
+
+    
 }

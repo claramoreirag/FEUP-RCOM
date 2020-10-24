@@ -1,9 +1,13 @@
 #include "data_link.h"
 
 
-int ns=0;
+int ns=0, nr=1;
 
 int resend=0, conta=0;
+
+char global_flag;
+
+struct termios oldtio,newtio;
 
 void atende()                   // atende alarme
 {
@@ -11,108 +15,14 @@ void atende()                   // atende alarme
 	resend=1;
 }
 
-
-void send_ua(int fd)
-{
-  	unsigned char buf[5];
-    buf[0]=FLAG;
-    buf[1]=A_RSP_RECETOR;
-    buf[2]=UA;
-    buf[3]=A_RSP_RECETOR^ UA;
-    buf[4]=FLAG;
-    write(fd,buf,5);
-
-    printf("UA sent: %x %x %x %x %x\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
-
-}
-
-void send_set(int fd)
-{
-    unsigned char buf[5];
-    buf[0]=FLAG;
-    buf[1]=0x03;
-    buf[2]=SET;
-    buf[3]=0x03 ^SET;
-    buf[4]=FLAG;
-    write(fd,buf,5);
-   printf("SET sent %x %x %x %x %x\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
-}
-
-
-
-int byte_stuffing(char* buf, char *res){
-
-  int j=0; 
-  for(int i=0; i<strlen(buf);i++){
-    if(buf[i]==FLAG){
-      res[j]=ESC;
-      res[++j]=FLAG^BYTE_STUFF;
-    }
-    else if(buf[i]==ESC){
-      res[j]=ESC;
-      res[++j]=ESC^BYTE_STUFF;
-    }
-    else{
-      res[j]=buf[i];
-    }
-    j++;
-  }
- 
-  return 0;
-
-}
-
-int byte_destuffing(char* buf, char *res){
-
-  int j=0; 
-  for(int i=0; i<strlen(buf);i++){
-    if(buf[i]==ESC && buf[i+1]==(FLAG^BYTE_STUFF)){
-        i++;
-        res[j]=FLAG;
-    }
-    else if(buf[i]==ESC && buf[i+1]==(ESC^BYTE_STUFF)){
-      i++;
-      res[j]=ESC;
-    }
-    else
-      res[j]=buf[i];
-    
-    j++;
-  }
-  
-  return 0;
-
-}
-
-
-int createInfoFrame(char * buf, int s, char * frame){
-  char res[255];
-  byte_stuffing(buf,res);
-  frame[0]=FLAG;
-  frame[1]=A_CMD_EMISSOR;
-  if(s==0)frame[2]=0x00;
-  else frame[2]=0x40;
-  for(int i=0; i<strlen(res);i++){
-    frame[i+3]=res[i];
-  }
-  char bcc;
-  for(int i=0;i<strlen(buf);i++){
-    bcc=bcc^ buf[i];
-  }
-  frame[2+strlen(res)]=bcc;
-  frame[3+strlen(res)]=FLAG;
-  
-  return 0;
-}
-
-
 int llopen(char * porta, char flag){
     
     int fd,c, res;
-    struct termios oldtio,newtio;
+    
     char buf[255];
     int i, sum = 0, speed = 0;
    
+    global_flag = flag;
 
     fd = open(porta, O_RDWR | O_NOCTTY );
     if (fd <0) {perror(porta); exit(-1); }
@@ -146,7 +56,7 @@ int llopen(char * porta, char flag){
    
     if(flag==TRANSMITTER){
 
-          StateMachine machine;
+          StateMachine1 machine;
           
           assembleStateMachine(&machine,A_RSP_RECETOR,UA);
 
@@ -183,8 +93,9 @@ int llopen(char * porta, char flag){
             close(fd);
             return -1;
           }
-          else printf("UA received \n");
-
+          else {printf("UA received \n");
+          alarm(0);
+          }
     }
 
     else if(flag==RECEIVER){
@@ -200,7 +111,7 @@ int llopen(char * porta, char flag){
           }
         
 
-           StateMachine machine_r;
+          StateMachine1 machine_r;
           assembleStateMachine(&machine_r,A_CMD_EMISSOR,SET);
 
           char buf[255];
@@ -218,7 +129,7 @@ int llopen(char * porta, char flag){
           }
           printf("SET received! \n");
 
-          send_ua(fd);
+          send_ua(fd, RECEIVER);
   }
     
     else  return -1;
@@ -229,14 +140,207 @@ int llopen(char * porta, char flag){
 }
 
 int llwrite(int fd, char * buffer, int length){
-    
+    resend=0;
+    conta=0;
+    int sentSucess=FALSE;
+    unsigned char buf[255];
+    int res, i=0;
+    char frame[length + 6];
 
+    StateMachine2 machine;
+    assembleStateMachine2(&machine,A_CMD_EMISSOR, !ns);
+    createInfoFrame(buffer,ns, frame);
+    do {
+      conta++;
+      i=0;
+      resend = 0;
+    
+      write(fd, frame,length+6);
+      printf("Info sent\n");
+      alarm(3);
+      
+      while (machine.state != STOP && !resend) {       /* loop for input */
+        
+        res = read(fd,&buf[i],1);   /* returns after 1 char has been input */
+        if (res == 0) continue;
+        printf("byte: %x\n", buf[i]);
+        machine.byte = buf[i];
+        changeState2(&machine);
+        if(machine.state==C_RCV){
+            if(ns!=0){
+              if(machine.byte==RR)sentSucess=TRUE;
+              else resend=TRUE;
+            }
+            else{
+              if(machine.byte==RR | 0x80)sentSucess=TRUE;
+              else resend=TRUE;
+            }
+        }
+        i++;
+    }
+
+  } while (!sentSucess && resend && conta < 3);
+
+  
+  if(conta>=3){
+    printf("Exceded number of tries to send frame \n");
+    return -1;
+  }
+  else{
+    alarm(0);
+    sentSucess=FALSE;
+  }
+
+  if(ns==0)ns=1;
+  else ns=0;
+  return length;
 }
+
+
+
 
 int llread(int fd, char * buffer){
 
+  int descartarTrama = FALSE;
+
+
+  StateMachineInfo machine;
+  assembleStateMachineInfo(&machine,A_CMD_EMISSOR, !nr);
+
+  unsigned char byte;
+  unsigned char info[255] = "";
+  int i = 0, infoSize=0;
+  while(machine.state!=STOP)
+  {
+    read(fd, &byte, 1);
+    printf("byte read: %x\n", byte);
+    machine.byte = byte;
+    changeInfoState(&machine);
+    i++;
+
+     if (machine.state == DATA_OK && byte != FLAG)
+    {
+      info[infoSize] = byte;
+      infoSize++;
+    }
+
+     if (i== 3)
+    {
+     
+      if (nr == 1 && byte == C_NS1)
+        descartarTrama = TRUE;
+      
+      else if (nr == 0 && byte == C_NS0)
+        descartarTrama = TRUE;
+      
+        
+    }
+}
+
+
+  byte_destuffing(info, buffer);
+  int dataError= !check_destuffing(info,info[strlen(info)-1]);
+
+  if(!descartarTrama){
+    if(dataError){
+      send_rej(fd,nr);
+      
+      return -1;
+    }
+    else {
+      send_rr(fd,nr);    
+      if(nr==0)nr=1;
+      else nr=0;
+  
+      return strlen(buffer);
+    }
+  }
+  else{
+  
+    send_rr(fd,nr);
+    return -1;
+  }
+
+
+
+
+
+
+  
 }
 
 int llclose(int fd){
     
+  if(global_flag == TRANSMITTER){
+
+    StateMachine1 disc_machine;
+    assembleStateMachine(&disc_machine, A_CMD_RECETOR, DISC);
+    int i, res;
+    char buf[255];
+
+    do {
+            conta++;
+            i=0;
+            resend = 0;
+
+            printf("Before send disc\n");
+            send_disc(fd, TRANSMITTER);
+
+            alarm(3);
+
+            while (disc_machine.state != STOP && !resend) {       /* loop for input */
+              
+              res = read(fd,&buf[i],1);   /* returns after 1 char has been input */
+              if (res == 0) continue;
+              printf("byte: %x\n", buf[i]);
+              disc_machine.byte = buf[i];
+              changeState(&disc_machine);
+              i++;
+            }
+
+          } while (conta< 3 && disc_machine.state != STOP);
+
+          
+          if(conta>=3){
+            printf("DISC not received, exiting\n");
+            sleep(1);
+            close(fd);
+            return -1;
+          }
+          else printf("DISC received\n");
+
+          send_ua(fd, TRANSMITTER);
+  }
+  else if(global_flag = RECEIVER){
+
+    StateMachine1 machine_r;
+    assembleStateMachine(&machine_r,A_CMD_EMISSOR,DISC);
+
+    char buf[255];
+    int res;
+  
+    int stop = 0;
+    int i = 0;
+    while(!stop)
+    {
+      res = read(fd, &buf[i], 1);
+      printf("byte read: %x\n", buf[i]);
+      machine_r.byte = buf[i];
+      changeState(&machine_r);
+      if(machine_r.state==STOP)stop = 1;
+      i++;
+    }
+    printf("DISC received! \n");
+
+    send_disc(fd, RECEIVER);
+
+
+  }
+  else return -1;
+
+  sleep(1);
+  tcsetattr(fd,TCSANOW,&oldtio);
+  close(fd);
+
+  return 0;
 }
