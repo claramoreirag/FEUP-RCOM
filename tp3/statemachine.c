@@ -86,9 +86,9 @@ void changeState2(StateMachine2 *machine){
 
             if(machine->byte == machine->flag)
                 machine->state = FLAG_RCV;
-            else if(machine->byte == machine->c1 || machine->byte == machine->c2)
+            else if(machine->byte == 0x85|| machine->byte == 0x81 ||machine->byte == 0x05|| machine->byte == 0x01 )
             {
-               
+                
                 machine->state = C_RCV;
                 control_flag = machine->byte;
             }
@@ -159,8 +159,10 @@ void changeInfoState(StateMachineInfo * machine){
 
             if(machine->byte == machine->flag)
                 machine->state = FLAG_RCV;
-            else if(machine->byte == machine->c)
+            else if(machine->byte == 0x40 ||machine->byte == 0x00){
+                machine->c =machine->byte;
                 machine->state = C_RCV;
+            }
             else
                 machine->state = START;
         break;
@@ -196,6 +198,4 @@ void assembleStateMachineInfo(StateMachineInfo * machine, char a, int r){
     machine->state = START;
     machine->flag = FLAG;
     machine->a = a;
-    if(r) machine->c = 0x40;
-    else machine->c = 0x00;
 }

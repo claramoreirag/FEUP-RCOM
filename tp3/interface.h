@@ -8,8 +8,12 @@
 
 struct applicationLayer {
 
-    int fileDescriptor;/*Descritor correspondente à porta série*/
+    char fileDescriptor[30];/*Descritor correspondente à porta série*/
+    char dataFileEmissor[30]; /*Path para o ficheiro onde estão os dados*/
+    char dataFileReceptor[30]; /*Path para o ficheiro que vai receber os dados*/
     int status;/*TRANSMITTER | RECEIVER*/
+    int filesize;
+    
 };
 
 struct linkLayer {

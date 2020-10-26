@@ -37,3 +37,16 @@
 //open modes
 #define TRANSMITTER 0
 #define RECEIVER 1
+
+
+
+
+
+//Application layer
+
+#define APP_START 0x02
+#define APP_DATA 0x01
+#define APP_END  0x03
+
+#define T_FILESIZE 0
+#define T_FILENAME 1

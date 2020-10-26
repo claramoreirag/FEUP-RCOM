@@ -1,7 +1,7 @@
 #include "data_link.h"
 
 
-int ns=0, nr=1;
+int ns=0, nr=0;
 
 int resend=0, conta=0;
 
@@ -19,7 +19,7 @@ int llopen(char * porta, char flag){
     
     int fd,c, res;
     
-    char buf[255];
+    char buf[255]="";
     int i, sum = 0, speed = 0;
    
     global_flag = flag;
@@ -114,7 +114,7 @@ int llopen(char * porta, char flag){
           StateMachine1 machine_r;
           assembleStateMachine(&machine_r,A_CMD_EMISSOR,SET);
 
-          char buf[255];
+          char buf[255]="";
         
           int stop = 0;
           int i = 0;
@@ -143,7 +143,7 @@ int llwrite(int fd, char * buffer, int length){
     resend=0;
     conta=0;
     int sentSucess=FALSE;
-    unsigned char buf[255];
+    unsigned char buf[255]="";
     int res, i=0;
     char frame[length + 6];
 
@@ -276,7 +276,7 @@ int llclose(int fd){
     StateMachine1 disc_machine;
     assembleStateMachine(&disc_machine, A_CMD_RECETOR, DISC);
     int i, res;
-    char buf[255];
+    char buf[255]="";
 
     do {
             conta++;
@@ -316,7 +316,7 @@ int llclose(int fd){
     StateMachine1 machine_r;
     assembleStateMachine(&machine_r,A_CMD_EMISSOR,DISC);
 
-    char buf[255];
+    char buf[255]="";
     int res;
   
     int stop = 0;

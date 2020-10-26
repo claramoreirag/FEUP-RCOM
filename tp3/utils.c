@@ -117,7 +117,7 @@ int byte_destuffing(char* buf, char *res){
 }
 
 int createInfoFrame(char * buf, int s, char * frame){
-  char res[255];
+  char res[255]="";
   byte_stuffing(buf,res);
   frame[0]=FLAG;
   frame[1]=A_CMD_EMISSOR;

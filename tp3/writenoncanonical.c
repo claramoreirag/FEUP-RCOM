@@ -19,7 +19,7 @@ int main(int argc, char** argv)
   }
 
    int fd=llopen(argv[1], TRANSMITTER);
-   char info[255]="hello";
+   char info[255]="{{{";
    llwrite(fd,info,strlen(info));
     close(fd);
     return 0;
