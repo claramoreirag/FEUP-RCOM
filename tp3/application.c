@@ -3,6 +3,8 @@
 
 struct applicationLayer application;
 
+int dataSize = 50; //Tamanho de cada vez que se vai ler a data do ficheiro; tamanho provisório
+
 
 int parseArgs(int argc, char ** argv){
     if(argc != 4)
@@ -25,26 +27,68 @@ int parseArgs(int argc, char ** argv){
 
 }
 
-void buildControlPackages(char * startControl, char * endControl, int fileSize){
-    startControl[0] = '2';
-    endControl[0] = '3';
-    startControl[1] = '0';
-    endControl[1] = '0';
+void buildControlPackages(char * startControl, char * endControl, int fileSize){ //Testar
+    startControl[0] = APP_START;
+    endControl[0] = APP_END;
+    startControl[1] = T_FILESIZE;
+    endControl[1] = T_FILESIZE;
     startControl[2] = '1';
     endControl[2] = '1';
     char * temp;
-    char size;
+    char * size;
     sprintf(temp, "%d", fileSize);
     sprintf(size, "%x", strlen(temp));
-    startControl[2] = size;
-    endControl[2] = size ;
+    strcat(startControl, size);
+    strcat(endControl, size);
     strcat(startControl, temp);
     strcat(endControl, temp);
     
 }
 
-int appTransmitter(int fd){
-    
+
+void buildDataPackage(int sequence_number, char * data, char * dataPackage){ //Testar
+    dataPackage[0] = APP_DATA;
+    char * sequence_number;
+    sprintf(sequence_number, "%x", sequence_number);
+    strcat(dataPackage, sequence_number);
+    //Adicionar aqui L1 e L2
+    strcat(dataPackage, data);
+}
+
+
+int appTransmitter(int fd){ //Testar
+
+    char data[255];
+    char dataPackage[255];
+    int bytes_read;
+    int sequence_number = 0;
+
+    int fd_file;
+    fd_file = open(application.dataFileEmissor, O_RDONLY);
+    if(fd_file < 0)
+        return -1;
+
+    char startControl[255];
+    char endControl[255];
+    buildControlPackages(startControl, endControl, application.filesize);
+    llwrite(fd, startControl, strlen(startControl));
+
+    while(bytes_read = read(fd_file, data, dataSize)){
+
+        buildDataPackage(sequence_number, data, dataPackage);
+        llwrite(fd, dataPackage, strlen(dataPackage));
+        sequence_number++;
+        //clear data e dataPackage
+        memset(data, 0, strlen(data));
+        memset(dataPackage, 0, strlen(dataPackage));
+    }
+
+    llwrite(fd, endControl, strlen(endControl));
+
+    close(fd_file);
+
+    return fd;
+
 }
 
 
@@ -52,8 +96,8 @@ int appTransmitter(int fd){
 int appReceiver(int fd){
     
     unsigned char package[255]="";
-     int fd_file;
-     int dataSize;
+    int fd_file;
+    int dataSize;
     while(TRUE){
         llread(fd,package);
          if(package[0]==APP_START){
