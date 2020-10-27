@@ -26,27 +26,38 @@ int parseArgs(int argc, char ** argv){
         return -1;
 
 }
+/* 
+unsigned char l1(long fileSize) {
+    int nbits = ceil(log2(fileSize));
+    int bytes_read= nbits / 8;
+    if (nbits % 8)bytes_read++;
 
-void buildControlPackages(char * startControl, char * endControl, int fileSize){ //Testar
+    return bytes_read;
+}
+
+void v1(long fileSize, char* size_in_octets, unsigned arr_size) {
+    char octet = (unsigned char)fileSize;
+
+    for (int i = arr_size - 1; i >= 0; --i) {
+        size_in_octets[i] = octet;
+        fileSize = fileSize >> 8;
+        octet = (unsigned char)fileSize;
+    }
+}
+
+void buildControlPackages(char * startControl, char * endControl, long fileSize){ //Testar
     startControl[0] = APP_START;
     endControl[0] = APP_END;
     startControl[1] = T_FILESIZE;
     endControl[1] = T_FILESIZE;
-    startControl[2] = '1';
-    endControl[2] = '1';
-    char * temp;
-    char * size;
-    sprintf(temp, "%d", fileSize);
-    sprintf(size, "%x", strlen(temp));
-    strcat(startControl, size);
-    strcat(endControl, size);
-    strcat(startControl, temp);
-    strcat(endControl, temp);
-    
-}
+    startControl[2] = l1(fileSize);
+    endControl[2] = l1(fileSize);
+    char v1[endControl[2]];
+    v1(bytes, v1, l1)
 
+} */
 
-void buildDataPackage(int sequence_number, char * data, char * dataPackage){ //Testar
+/* void buildDataPackage(int sequence_number, char * data, char * dataPackage){ //Testar
     dataPackage[0] = APP_DATA;
     char * sequence_number;
     sprintf(sequence_number, "%x", sequence_number);
@@ -54,22 +65,26 @@ void buildDataPackage(int sequence_number, char * data, char * dataPackage){ //T
     //Adicionar aqui L1 e L2
     strcat(dataPackage, data);
 }
-
-
+ */
 int appTransmitter(int fd){ //Testar
-
-    char data[255];
-    char dataPackage[255];
+   
+    char data[255]="";
+    char dataPackage[255]=""; //
+    char controlPackage[255];
     int bytes_read;
-    int sequence_number = 0;
+    int sequenceNumber = 0;
+    char * file_data[255]; //
 
     int fd_file;
     fd_file = open(application.dataFileEmissor, O_RDONLY);
-    if(fd_file < 0)
-        return -1;
+    if(fd_file < 0)return -1;
 
-    char startControl[255];
-    char endControl[255];
+    struct stat fileInfo;
+    if (stat(application.dataFileEmissor, &fileInfo)<0)return -1;
+  
+
+    /* char startControl[255]="";
+    char endControl[255]="";
     buildControlPackages(startControl, endControl, application.filesize);
     llwrite(fd, startControl, strlen(startControl));
 
@@ -85,7 +100,34 @@ int appTransmitter(int fd){ //Testar
 
     llwrite(fd, endControl, strlen(endControl));
 
-    close(fd_file);
+    close(fd_file); */
+
+     /*building control package*/
+    controlPackage[0] = APP_START;
+    controlPackage[1] = T_FILESIZE;
+    controlPackage[2] = sizeof(fileInfo.st_size); /* sending size of off_t */
+    memcpy(&controlPackage[3],&fileInfo.st_size,sizeof(fileInfo.st_size));
+
+
+    llwrite(fd,controlPackage,strlen(controlPackage));
+
+    while( (bytes_read = read(fd_file,file_data,255-4)) != 0){
+        /*building data package*/
+        dataPackage[0] = APP_DATA;
+        dataPackage[1] = sequenceNumber % 255;
+        dataPackage[2] = bytes_read / 256;
+        dataPackage[3] = bytes_read % 256;
+        memcpy(&dataPackage[4],file_data,bytes_read);
+
+        llwrite(fd,dataPackage,bytes_read+4);
+
+        sequenceNumber++;
+    }
+
+    controlPackage[0] = APP_END;
+
+    llwrite(fd,controlPackage,sizeof(fileInfo.st_size) + 5 + strlen(application.dataFileEmissor));
+
 
     return fd;
 
@@ -141,7 +183,9 @@ void parseControl(unsigned char * control){
 
 
 
+
 int main(int argc, char **argv){
+
 
     parseArgs(argc, argv);
 
@@ -150,10 +194,13 @@ int main(int argc, char **argv){
     if (fd < 0)
         return fd;
 
+
     if(application.status == TRANSMITTER){
-        
-    }
-    else if(application.status == RECEIVER){
+        appTransmitter(fd);
 
     }
+    else if(application.status == RECEIVER){
+         appReceiver(fd);
+    }
+    return 0;
 }
