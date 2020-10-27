@@ -83,12 +83,14 @@ int appReceiver(int fd){
 void parseControl(unsigned char * control){
     int filesize=0;
     int infoSize=0;
+    
     if(control[1]==T_FILESIZE){
         infoSize=control[2];
+        char size[infoSize];
         for (int i =3; i < infoSize+3; i++){
-            filesize += control[i] << 8*(i-3);
+            size[i-3]=control[i];
         }
-    
+        filesize=atoi(size);
     }
     application.filesize=filesize;
 }
