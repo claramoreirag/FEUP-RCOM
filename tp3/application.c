@@ -7,19 +7,24 @@ int dataSize = 50; //Tamanho de cada vez que se vai ler a data do ficheiro; tama
 
 
 int parseArgs(int argc, char ** argv){
-    if(argc != 4)
+    
+    if(argc != 4){
         return -1; 
-
+    }
     strcpy(application.fileDescriptor, argv[3]); //Implementar aqui erros
     
     if(!strcmp(argv[1], "receiver")){
         application.status = RECEIVER;
-        strcpy(application.dataFileEmissor, argv[2]);
+        printf("%s\n", argv[2]);
+        strcpy(application.dataFileReceptor, argv[2]);
+        
     }
     
     else if(!strcmp(argv[1], "transmitter")){
         application.status = TRANSMITTER;
-        strcpy(application.dataFileReceptor, argv[2]);
+        printf("ARG: %s\n", argv[2]);
+        strcpy(application.dataFileEmissor, argv[2]);
+        printf("Data File Receptor: %s\n", application.dataFileEmissor);
     }
 
     else
@@ -67,18 +72,21 @@ void buildControlPackages(char * startControl, char * endControl, long fileSize)
 }
  */
 int appTransmitter(int fd){ //Testar
-   
+   printf("transmitter\n");
     char data[255]="";
     char dataPackage[255]=""; //
     char controlPackage[255];
     int bytes_read;
     int sequenceNumber = 0;
     char * file_data[255]; //
-
+    printf("%s\n",application.dataFileEmissor);
     int fd_file;
+    printf("DATA FILE EMISSOR IN APP TRANSMITTER: %s\n", application.dataFileEmissor);
     fd_file = open(application.dataFileEmissor, O_RDONLY);
-    if(fd_file < 0)return -1;
-
+    if(fd_file < 0){
+        printf("TRANSMITTER FILE NOT OPEN\n");
+        return -1;
+    }
     struct stat fileInfo;
     if (stat(application.dataFileEmissor, &fileInfo)<0)return -1;
   
@@ -108,7 +116,7 @@ int appTransmitter(int fd){ //Testar
     controlPackage[2] = sizeof(fileInfo.st_size); /* sending size of off_t */
     memcpy(&controlPackage[3],&fileInfo.st_size,sizeof(fileInfo.st_size));
 
-
+    printf("Control Package: %s \n", controlPackage);
     llwrite(fd,controlPackage,strlen(controlPackage));
 
     while( (bytes_read = read(fd_file,file_data,255-4)) != 0){
@@ -134,15 +142,14 @@ int appTransmitter(int fd){ //Testar
 }
 
 
-
 int appReceiver(int fd){
-    
+    printf("receiver");
     unsigned char package[255]="";
     int fd_file;
     int dataSize;
     while(TRUE){
         llread(fd,package);
-         if(package[0]==APP_START){
+         /* if(package[0]==APP_START){
             parseControl(package);
             fd_file= open(application.dataFileReceptor,O_RDWR | O_CREAT, 0777);
             continue;
@@ -154,7 +161,7 @@ int appReceiver(int fd){
          else if(package[0] == APP_DATA){
             dataSize = 256* package[2]+ package[3];
             write(fd_file, &package[4], dataSize);
-         }
+         } */
 
 
     }
@@ -186,7 +193,6 @@ void parseControl(unsigned char * control){
 
 int main(int argc, char **argv){
 
-
     parseArgs(argc, argv);
 
     int fd = llopen(application.fileDescriptor, application.status);
@@ -196,11 +202,13 @@ int main(int argc, char **argv){
 
 
     if(application.status == TRANSMITTER){
+        printf("Going to enter app transmitter\n");
         appTransmitter(fd);
 
     }
     else if(application.status == RECEIVER){
-         appReceiver(fd);
+        printf("Going to enter app receiver\n");
+        appReceiver(fd);
     }
     return 0;
 }
