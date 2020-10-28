@@ -70,7 +70,7 @@ int appTransmitter(int fd){ //Testar
    
     char data[255]="";
     char dataPackage[255]=""; //
-    char controlPackage[255];
+    char controlPackage[255]="";
     int bytes_read;
     int sequenceNumber = 0;
     char * file_data[255]; //
@@ -104,8 +104,11 @@ int appTransmitter(int fd){ //Testar
 
      /*building control package*/
     controlPackage[0] = APP_START;
+    printf("%x\n",controlPackage[0]);
     controlPackage[1] = T_FILESIZE;
+    printf("%x\n",controlPackage[1]);
     controlPackage[2] = sizeof(fileInfo.st_size); /* sending size of off_t */
+    printf("%x\n",controlPackage[2]);
     memcpy(&controlPackage[3],&fileInfo.st_size,sizeof(fileInfo.st_size));
 
 
