@@ -20,7 +20,7 @@ int main(int argc, char** argv)
 
    int fd=llopen(argv[1], TRANSMITTER);
    char info[255]="{{{";
-   llwrite(fd,info,strlen(info));
+   llwrite(fd,info,255);
     close(fd);
     return 0;
 }

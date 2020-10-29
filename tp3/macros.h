@@ -48,5 +48,5 @@
 #define APP_DATA 0x01
 #define APP_END  0x03
 
-#define T_FILESIZE 0
-#define T_FILENAME 1
+#define T_FILESIZE 0x00
+#define T_FILENAME 0x01

@@ -146,11 +146,11 @@ int llwrite(int fd, char * buffer, int length){
     int sentSucess=FALSE;
     unsigned char buf[255]="";
     int res, i=0;
-    char frame[length + 6];
+    char frame[1024];
 
     StateMachine2 machine;
     assembleStateMachine2(&machine,A_CMD_EMISSOR, !ns);
-    createInfoFrame(buffer,ns, frame);
+    createInfoFrame(buffer,ns,frame,length);
     do {
       conta++;
       i=0;
@@ -158,6 +158,7 @@ int llwrite(int fd, char * buffer, int length){
     
       write(fd, frame,length+6);
       printf("Info sent\n");
+      print_hex(frame,length + 6);
       alarm(3);
       
       while (machine.state != STOP && !resend) {       /* loop for input */
@@ -202,6 +203,8 @@ int llwrite(int fd, char * buffer, int length){
 
 int llread(int fd, char * buffer){
 
+  printf("LL READ \n");
+  
   int descartarTrama = FALSE;
 
 
@@ -225,7 +228,7 @@ int llread(int fd, char * buffer){
       infoSize++;
     }
 
-     if (i== 3)
+     if (i == 3)
     {
      
       if (nr == 1 && byte == C_NS1)
@@ -238,35 +241,30 @@ int llread(int fd, char * buffer){
     }
 }
 
-
-  byte_destuffing(info, buffer);
-  int dataError= !check_destuffing(info,info[strlen(info)-1]);
+  infoSize=byte_destuffing(info, buffer, infoSize);
+  int dataError= !check_destuffing(buffer,buffer[infoSize - 1], infoSize);
 
   if(!descartarTrama){
     if(dataError){
       send_rej(fd,nr);
-      
+    
+
       return -1;
     }
     else {
       send_rr(fd,nr);    
       if(nr==0)nr=1;
       else nr=0;
-  
-      return strlen(buffer);
+
+
+      return infoSize -1;
     }
   }
   else{
-  
+
     send_rr(fd,nr);
     return -1;
   }
-
-
-
-
-
-
   
 }
 
