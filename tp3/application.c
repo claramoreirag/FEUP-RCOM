@@ -195,6 +195,6 @@ int main(int argc, char **argv){
         appReceiver(fd);
     }
 
-    
+    llclose(fd);
     return 0;
 }
