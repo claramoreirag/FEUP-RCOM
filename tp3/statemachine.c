@@ -1,5 +1,5 @@
 #include "statemachine.h"
-
+ char control_flag;
 
 void changeState(StateMachine1 *machine){
 
@@ -49,12 +49,12 @@ void changeState(StateMachine1 *machine){
         break;
             
     }
-    printf("Current state: %d \n",machine->state);
+    // printf("Current state: %d \n",machine->state);
 }
 
 
 void assembleStateMachine(StateMachine1 *machine, char a, char c){
-
+  
   machine->state = START;
   machine->flag = FLAG;
   machine->a = a;
@@ -64,7 +64,7 @@ void assembleStateMachine(StateMachine1 *machine, char a, char c){
 
 void changeState2(StateMachine2 *machine){
 
-    char control_flag;
+   
 
   switch(machine->state){
         
@@ -83,12 +83,10 @@ void changeState2(StateMachine2 *machine){
         break;
         
         case A_RCV:
-
             if(machine->byte == machine->flag)
                 machine->state = FLAG_RCV;
             else if(machine->byte == 0x85|| machine->byte == 0x81 ||machine->byte == 0x05|| machine->byte == 0x01 )
             {
-                
                 machine->state = C_RCV;
                 control_flag = machine->byte;
             }
@@ -101,8 +99,10 @@ void changeState2(StateMachine2 *machine){
                 machine->state = FLAG_RCV;
             else if(machine->byte == machine->a ^ control_flag)
                 machine->state = BCC_OK;
-            else
+            else {
+                printf("                        a: %x c: %x\n", machine->a, control_flag);
                 machine->state = START;
+            }
 
         break;
 
@@ -116,7 +116,7 @@ void changeState2(StateMachine2 *machine){
         break;
             
     }
-    printf("Current state: %d \n",machine->state);
+    // printf("Current state: %d \n",machine->state);
 
 }
 

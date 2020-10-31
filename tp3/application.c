@@ -3,7 +3,7 @@
 
 struct applicationLayer application;
 
-int dataSize = 50; //Tamanho de cada vez que se vai ler a data do ficheiro; tamanho provisório
+int dataSize = 255; //Tamanho de cada vez que se vai ler a data do ficheiro; tamanho provisório
 
 
 
@@ -87,16 +87,7 @@ int appTransmitter(int fd){ //Testar
     struct stat fileInfo;
     if (stat(application.dataFileEmissor, &fileInfo)<0)return -1;
   
-
-
      /*building control package*/
-/* 
-    unsigned char L1 =(unsigned char) sizeof(fileInfo.st_size);
-    controlPackage[0] = APP_START;
-    controlPackage[1] = 0;
-    controlPackage[2] = L1;
-    memcpy(&controlPackage[3], &fileInfo.st_size, L1); */
-
     int size =createControlPackage(APP_START,controlPackage,fileInfo.st_size);
     print_hex(controlPackage,size);
     llwrite(fd,controlPackage,size);
@@ -111,7 +102,7 @@ int appTransmitter(int fd){ //Testar
         memcpy(&dataPackage[4],file_data,bytes_read);
 
         llwrite(fd,dataPackage,bytes_read+4);
-
+        printf("sequence number: %d \n",sequenceNumber);
         sequenceNumber++;
     }
 
@@ -131,7 +122,6 @@ int appReceiver(int fd){
     int dataSize;
     while(TRUE){
         int packetSize=llread(fd,package);
-
         print_hex(package,packetSize);
          if(package[0]==APP_START){
             parseControl(package);

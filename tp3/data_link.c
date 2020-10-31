@@ -12,6 +12,7 @@ struct termios oldtio,newtio;
 void atende()                   // atende alarme
 {
 	printf("alarme # %d\n", conta);
+  printf("ns: %d\n",ns);
 	resend=1;
 }
 
@@ -122,7 +123,7 @@ int llopen(char * porta, char flag){
           while(!stop)
           {
             res = read(fd, &buf[i], 1);
-            printf("byte read: %x\n", buf[i]);
+            // printf("byte read: %x\n", buf[i]);
             machine_r.byte = buf[i];
             changeState(&machine_r);
             if(machine_r.state==STOP)stop = 1;
@@ -150,19 +151,20 @@ int llwrite(int fd, char * buffer, int length){
 
     StateMachine2 machine;
     assembleStateMachine2(&machine,A_CMD_EMISSOR, !ns);
-    createInfoFrame(buffer,ns,frame,length);
+    printf("data before stuffing: ");
+    print_hex(buffer,length);
+    int frameSize=createInfoFrame(buffer,ns,frame,length);
     do {
       conta++;
       i=0;
       resend = 0;
-    
-      write(fd, frame,length+6);
+
+      write(fd, frame,frameSize);
       printf("Info sent\n");
-      print_hex(frame,length + 6);
-      alarm(3);
+      print_hex(frame,frameSize);
+      alarm(10);
       
       while (machine.state != STOP && !resend) {       /* loop for input */
-        
         res = read(fd,&buf[i],1);   /* returns after 1 char has been input */
         if (res == 0) continue;
         printf("byte: %x\n", buf[i]);
@@ -182,7 +184,6 @@ int llwrite(int fd, char * buffer, int length){
     }
 
   } while (!sentSucess && resend && conta < 3);
-
   
   if(conta>=3){
     printf("Exceded number of tries to send frame \n");
@@ -211,8 +212,8 @@ int llread(int fd, char * buffer){
   StateMachineInfo machine;
   assembleStateMachineInfo(&machine,A_CMD_EMISSOR, !nr);
 
-  unsigned char byte;
-  unsigned char info[255] = "";
+  char byte;
+  char info[512] = "";
   int i = 0, infoSize=0;
   while(machine.state!=STOP)
   {
@@ -241,13 +242,19 @@ int llread(int fd, char * buffer){
     }
 }
 
+  printf("Before ds: ");
+  print_hex(info,infoSize);
+
   infoSize=byte_destuffing(info, buffer, infoSize);
   int dataError= !check_destuffing(buffer,buffer[infoSize - 1], infoSize);
+
+  printf("After ds: ");
+  print_hex(buffer,infoSize);
 
   if(!descartarTrama){
     if(dataError){
       send_rej(fd,nr);
-    
+      
 
       return -1;
     }
@@ -256,12 +263,10 @@ int llread(int fd, char * buffer){
       if(nr==0)nr=1;
       else nr=0;
 
-
       return infoSize -1;
     }
   }
   else{
-
     send_rr(fd,nr);
     return -1;
   }
@@ -323,7 +328,7 @@ int llclose(int fd){
     while(!stop)
     {
       res = read(fd, &buf[i], 1);
-      printf("byte read: %x\n", buf[i]);
+      // printf("byte read: %x\n", buf[i]);
       machine_r.byte = buf[i];
       changeState(&machine_r);
       if(machine_r.state==STOP)stop = 1;

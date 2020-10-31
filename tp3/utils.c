@@ -109,7 +109,7 @@ int byte_destuffing(char *buf, char *res, int size)
 {
 
   int j = 0;
-  for (int i = 0; i < size; i++)
+  for (int i = 0; i < size - 1; i++)
   {
     if (buf[i] == ESC && buf[i + 1] == (FLAG ^ BYTE_STUFF))
     {
@@ -126,6 +126,8 @@ int byte_destuffing(char *buf, char *res, int size)
 
     j++;
   }
+
+  res[j++] = buf[size - 1];
 
   return j;
 }
@@ -150,7 +152,7 @@ int createInfoFrame(char *buf, int s, char *frame, int size)
   frame[5 + resSize] = FLAG;
   printf("after stuffing: ");
   print_hex(frame, resSize + 6);
-  return 0;
+  return resSize + 6;
 }
 
 int check_destuffing(char *buf, char bcc2, int size)
@@ -161,6 +163,8 @@ int check_destuffing(char *buf, char bcc2, int size)
   {
     cmp = cmp ^ buf[i];
   }
+  printf("calculated bcc: %X ", cmp);
+  printf("read bcc: %X\n", bcc2);
   return cmp == bcc2;
 }
 
