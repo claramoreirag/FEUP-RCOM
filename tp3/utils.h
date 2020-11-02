@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
+#include <unistd.h>
 #include "macros.h"
 #include <string.h>
 

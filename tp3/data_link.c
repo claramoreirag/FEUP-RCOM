@@ -1,5 +1,6 @@
 #include "data_link.h"
 
+struct linkLayer dlayer;
 
 int ns=0, nr=0;
 
@@ -12,18 +13,21 @@ struct termios oldtio,newtio;
 void atende()                   // atende alarme
 {
 	printf("alarme # %d\n", conta);
-  printf("ns: %d\n",ns);
+ 
 	resend=1;
 }
 
 int llopen(char * porta, char flag){
     
-    int fd,c, res;
+    int fd, res;
     
     char buf[255]="";
-    int i, sum = 0, speed = 0;
+    int i;
    
     global_flag = flag;
+
+    dlayer.timeout=3;
+    dlayer.numTransmissions=3;
 
     fd = open(porta, O_RDWR | O_NOCTTY );
     if (fd <0) {perror(porta); exit(-1); }
@@ -67,25 +71,25 @@ int llopen(char * porta, char flag){
             i=0;
             resend = 0;
 
-            printf("Before send set\n");
+           
             send_set(fd);
 
-            alarm(3);
+            alarm(dlayer.timeout);
 
             while (machine.state != STOP && !resend) {       /* loop for input */
               
               res = read(fd,&buf[i],1);   /* returns after 1 char has been input */
               if (res == 0) continue;
-              printf("byte: %x\n", buf[i]);
+              
               machine.byte = buf[i];
               changeState(&machine);
               i++;
             }
 
-          } while (conta< 3 && machine.state != STOP);
+          } while (conta< dlayer.numTransmissions && machine.state != STOP);
 
           
-          if(conta>=3){
+          if(conta>=dlayer.numTransmissions){
             printf("UA not received, exiting\n");
             sleep(1);
             if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
@@ -123,7 +127,7 @@ int llopen(char * porta, char flag){
           while(!stop)
           {
             res = read(fd, &buf[i], 1);
-            // printf("byte read: %x\n", buf[i]);
+            
             machine_r.byte = buf[i];
             changeState(&machine_r);
             if(machine_r.state==STOP)stop = 1;
@@ -151,8 +155,7 @@ int llwrite(int fd, char * buffer, int length){
 
     StateMachine2 machine;
     assembleStateMachine2(&machine,A_CMD_EMISSOR, !ns);
-    printf("data before stuffing: ");
-    print_hex(buffer,length);
+   
     int frameSize=createInfoFrame(buffer,ns,frame,length);
     do {
       conta++;
@@ -160,14 +163,13 @@ int llwrite(int fd, char * buffer, int length){
       resend = 0;
 
       write(fd, frame,frameSize);
-      printf("Info sent\n");
-      print_hex(frame,frameSize);
-      alarm(10);
+    
+      alarm(dlayer.timeout);
       
       while (machine.state != STOP && !resend) {       /* loop for input */
         res = read(fd,&buf[i],1);   /* returns after 1 char has been input */
         if (res == 0) continue;
-        printf("byte: %x\n", buf[i]);
+        
         machine.byte = buf[i];
         changeState2(&machine);
         if(machine.state==C_RCV){
@@ -185,7 +187,7 @@ int llwrite(int fd, char * buffer, int length){
 
   } while (!sentSucess && resend && conta < 3);
   
-  if(conta>=3){
+  if(conta>=dlayer.numTransmissions){
     printf("Exceded number of tries to send frame \n");
     return -1;
   }
@@ -204,7 +206,7 @@ int llwrite(int fd, char * buffer, int length){
 
 int llread(int fd, char * buffer){
 
-  printf("LL READ \n");
+  
   
   int descartarTrama = FALSE;
 
@@ -218,7 +220,7 @@ int llread(int fd, char * buffer){
   while(machine.state!=STOP)
   {
     read(fd, &byte, 1);
-    printf("byte read: %x\n", byte);
+  
     machine.byte = byte;
     changeInfoState(&machine);
     i++;
@@ -242,14 +244,9 @@ int llread(int fd, char * buffer){
     }
 }
 
-  printf("Before ds: ");
-  print_hex(info,infoSize);
 
   infoSize=byte_destuffing(info, buffer, infoSize);
   int dataError= !check_destuffing(buffer,buffer[infoSize - 1], infoSize);
-
-  printf("After ds: ");
-  print_hex(buffer,infoSize);
 
   if(!descartarTrama){
     if(dataError){
@@ -287,25 +284,25 @@ int llclose(int fd){
             i=0;
             resend = 0;
 
-            printf("Before send disc\n");
+         
             send_disc(fd, TRANSMITTER);
 
-            alarm(3);
+            alarm(dlayer.timeout);
 
             while (disc_machine.state != STOP && !resend) {       /* loop for input */
               
               res = read(fd,&buf[i],1);   /* returns after 1 char has been input */
               if (res == 0) continue;
-              printf("byte: %x\n", buf[i]);
+             
               disc_machine.byte = buf[i];
               changeState(&disc_machine);
               i++;
             }
 
-          } while (conta< 3 && disc_machine.state != STOP);
+          } while (conta< dlayer.numTransmissions && disc_machine.state != STOP);
 
           
-          if(conta>=3){
+          if(conta>=dlayer.numTransmissions){
             printf("DISC not received, exiting\n");
             sleep(1);
             close(fd);
@@ -315,20 +312,20 @@ int llclose(int fd){
 
           send_ua(fd, TRANSMITTER);
   }
-  else if(global_flag = RECEIVER){
+  else if(global_flag == RECEIVER){
 
     StateMachine1 machine_r;
     assembleStateMachine(&machine_r,A_CMD_EMISSOR,DISC);
 
     char buf[255]="";
+   
     int res;
-  
     int stop = 0;
     int i = 0;
     while(!stop)
     {
       res = read(fd, &buf[i], 1);
-      // printf("byte read: %x\n", buf[i]);
+    
       machine_r.byte = buf[i];
       changeState(&machine_r);
       if(machine_r.state==STOP)stop = 1;

@@ -4,9 +4,12 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <stdio.h>
 #include "macros.h"
+#include "interface.h"
 #include "statemachine.h"
 #include "utils.h"
 

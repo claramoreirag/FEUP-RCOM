@@ -150,8 +150,7 @@ int createInfoFrame(char *buf, int s, char *frame, int size)
   char bcc = calculateBCC2(buf, size);
   frame[4 + resSize] = bcc;
   frame[5 + resSize] = FLAG;
-  printf("after stuffing: ");
-  print_hex(frame, resSize + 6);
+  
   return resSize + 6;
 }
 
@@ -163,8 +162,7 @@ int check_destuffing(char *buf, char bcc2, int size)
   {
     cmp = cmp ^ buf[i];
   }
-  printf("calculated bcc: %X ", cmp);
-  printf("read bcc: %X\n", bcc2);
+ 
   return cmp == bcc2;
 }
 

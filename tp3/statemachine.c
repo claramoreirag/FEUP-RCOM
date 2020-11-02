@@ -32,7 +32,7 @@ void changeState(StateMachine1 *machine){
         case C_RCV:
             if(machine->byte == machine->flag)
                 machine->state = FLAG_RCV;
-            else if(machine->byte == machine->a ^ machine->c)
+            else if((machine->byte == machine->a )^ machine->c)
                 machine->state = BCC_OK;
             else
                 machine->state = START;
@@ -46,6 +46,9 @@ void changeState(StateMachine1 *machine){
                 machine->state = START;
             
 
+        break;
+
+        default:
         break;
             
     }
@@ -97,10 +100,10 @@ void changeState2(StateMachine2 *machine){
         case C_RCV:
             if(machine->byte == machine->flag)
                 machine->state = FLAG_RCV;
-            else if(machine->byte == machine->a ^ control_flag)
+            else if((machine->byte == machine->a )^ control_flag)
                 machine->state = BCC_OK;
             else {
-                printf("                        a: %x c: %x\n", machine->a, control_flag);
+               
                 machine->state = START;
             }
 
@@ -113,6 +116,9 @@ void changeState2(StateMachine2 *machine){
                 machine->state = START;
             
 
+        break;
+
+        default:
         break;
             
     }
@@ -170,7 +176,7 @@ void changeInfoState(StateMachineInfo * machine){
         case C_RCV:
             if(machine->byte == machine->flag)
                 machine->state = FLAG_RCV;
-            else if(machine->byte == machine->a ^ machine->c)
+            else if((machine->byte == machine->a) ^ machine->c)
                 machine->state = BCC_OK;
             else
                 machine->state = START;
@@ -187,9 +193,12 @@ void changeInfoState(StateMachineInfo * machine){
                 machine->state = STOP;
                 
         break;
+
+        default:
+        break;
             
     }
-    printf("Current state: %d \n",machine->state);
+    //printf("Current state: %d \n",machine->state);
 
 }
 
