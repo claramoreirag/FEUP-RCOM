@@ -86,8 +86,10 @@ int appTransmitter(int fd){
     int size =createControlPackage(APP_START,controlPackage,fileInfo.st_size);
     llwrite(fd,controlPackage,size);
 
+    int error;
 
     while( (bytes_read = read(fd_file,file_data,application.dataSize-4)) != 0){
+        
         /*building data package*/
         dataPackage[0] = APP_DATA;
         dataPackage[1] = sequenceNumber % application.dataSize;
@@ -95,7 +97,9 @@ int appTransmitter(int fd){
         dataPackage[3] = bytes_read % (application.dataSize + 1);
         memcpy(&dataPackage[4],file_data,bytes_read);
 
-        llwrite(fd,dataPackage,bytes_read+4);
+        error = llwrite(fd,dataPackage,bytes_read+4);
+        if(error == -1)
+            return error;
         sequenceNumber++;
     }
 
@@ -114,9 +118,11 @@ int appReceiver(int fd){
     int fd_file;
     int dataSize;
     while(TRUE){
-        llread(fd,package);
+        int size=llread(fd,package);
         
-    
+         if(size==-1)
+            continue;
+
          if(package[0]==APP_START){
             parseControl(package);
             fd_file= open(application.dataFileReceptor,O_WRONLY | O_CREAT | O_TRUNC , 0777);
@@ -131,7 +137,7 @@ int appReceiver(int fd){
             write(fd_file, &package[4], dataSize);
          } 
 
-
+        
     }
 
      if (close(fd_file)<0)return -1;
@@ -160,17 +166,21 @@ void parseControl(unsigned char * control){
 
 
 int main(int argc, char **argv){
-
+    srand(time(0));
     parseArgs(argc, argv);
 
     int fd = llopen(application.fileDescriptor, application.status);
+
+    int error;
 
     if (fd < 0)
         return fd;
 
 
     if(application.status == TRANSMITTER){
-        appTransmitter(fd);
+        error = appTransmitter(fd);
+        if(error == -1)
+            return error;
 
     }
     else if(application.status == RECEIVER){

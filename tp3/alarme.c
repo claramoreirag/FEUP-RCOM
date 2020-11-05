@@ -2,7 +2,7 @@
 #include <signal.h>
 #include <stdio.h>
 
-int flag=1, conta=1;
+int flag=1, conta=0;
 
 void atende()                   // atende alarme
 {

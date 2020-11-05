@@ -2,7 +2,7 @@
 
 struct linkLayer dlayer;
 
-int ns=0, nr=0;
+int ns=0, nr=1;
 
 int resend=0, conta=0;
 
@@ -26,8 +26,8 @@ int llopen(char * porta, char flag){
    
     global_flag = flag;
 
-    dlayer.timeout=3;
-    dlayer.numTransmissions=3;
+    dlayer.timeout=5;
+    dlayer.numTransmissions=6;
 
     fd = open(porta, O_RDWR | O_NOCTTY );
     if (fd <0) {perror(porta); exit(-1); }
@@ -158,9 +158,11 @@ int llwrite(int fd, char * buffer, int length){
    
     int frameSize=createInfoFrame(buffer,ns,frame,length);
     do {
+      machine.state = START;
       conta++;
       i=0;
       resend = 0;
+      printf("Info sequence: %X\n", frame[2] / 0x40);
 
       write(fd, frame,frameSize);
     
@@ -173,13 +175,19 @@ int llwrite(int fd, char * buffer, int length){
         machine.byte = buf[i];
         changeState2(&machine);
         if(machine.state==C_RCV){
-            if(ns!=0){
+            if(ns==1){
               if(machine.byte==RR)sentSucess=TRUE;
-              else resend=TRUE;
+              else {
+                printf("   1ERROR RECEIVED: %X\n", machine.byte);
+                resend=TRUE;
+              } 
             }
             else{
-              if(machine.byte==RR | 0x80)sentSucess=TRUE;
-              else resend=TRUE;
+              if(machine.byte==0x85)sentSucess=TRUE;
+                else {
+                printf("   2ERROR RECEIVED: %X\n", machine.byte);
+                resend=TRUE;
+              } 
             }
         }
         i++;
@@ -206,8 +214,6 @@ int llwrite(int fd, char * buffer, int length){
 
 int llread(int fd, char * buffer){
 
-  
-  
   int descartarTrama = FALSE;
 
 
@@ -220,7 +226,16 @@ int llread(int fd, char * buffer){
   while(machine.state!=STOP)
   {
     read(fd, &byte, 1);
-  
+    
+    int BER = 1024;
+    if (BER) {
+        int percentage = rand() % BER;
+        if (percentage == 1) {
+            byte = 0x00;
+            printf("Bit lost! %d\n", i);
+        }
+    }
+
     machine.byte = byte;
     changeInfoState(&machine);
     i++;
@@ -233,40 +248,56 @@ int llread(int fd, char * buffer){
 
      if (i == 3)
     {
+      printf(" queremos: %X\n", !nr);
+      printf(" ficamos : %x\n", byte / 0x40);
      
       if (nr == 1 && byte == C_NS1)
         descartarTrama = TRUE;
       
       else if (nr == 0 && byte == C_NS0)
         descartarTrama = TRUE;
-      
         
     }
 }
 
-
   infoSize=byte_destuffing(info, buffer, infoSize);
   int dataError= !check_destuffing(buffer,buffer[infoSize - 1], infoSize);
 
-  if(!descartarTrama){
-    if(dataError){
-      send_rej(fd,nr);
-      
+  if (dataError) {
+    send_rej(fd,nr);
+    return -1;
+  } 
 
-      return -1;
-    }
-    else {
-      send_rr(fd,nr);    
-      if(nr==0)nr=1;
-      else nr=0;
-
-      return infoSize -1;
-    }
-  }
-  else{
+  if (descartarTrama) {
+    printf("discarded\n");
     send_rr(fd,nr);
     return -1;
   }
+
+  send_rr(fd,nr);    
+  if(nr==0)nr=1;
+  else nr=0;
+
+  return infoSize -1;
+
+  // if(!descartarTrama){
+  //   if(dataError){
+  //     send_rej(fd,nr);
+  //     return -1;
+  //   }
+  //   else {
+  //     send_rr(fd,nr);    
+  //     if(nr==0)nr=1;
+  //     else nr=0;
+
+  //     return infoSize -1;
+  //   }
+  // }
+  // else{
+  //   printf("discarded\n");
+  //   send_rr(fd,nr);
+  //   return -1;
+  // }
   
 }
 
@@ -278,7 +309,7 @@ int llclose(int fd){
     assembleStateMachine(&disc_machine, A_CMD_RECETOR, DISC);
     int i, res;
     char buf[255]="";
-
+    conta=0;
     do {
             conta++;
             i=0;
