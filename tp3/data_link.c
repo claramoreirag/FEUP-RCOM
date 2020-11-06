@@ -162,7 +162,7 @@ int llwrite(int fd, char * buffer, int length){
       conta++;
       i=0;
       resend = 0;
-      printf("Info sequence: %X\n", frame[2] / 0x40);
+     
 
       write(fd, frame,frameSize);
     
@@ -178,14 +178,14 @@ int llwrite(int fd, char * buffer, int length){
             if(ns==1){
               if(machine.byte==RR)sentSucess=TRUE;
               else {
-                printf("   1ERROR RECEIVED: %X\n", machine.byte);
+                //printf("   1ERROR RECEIVED: %X\n", machine.byte);
                 resend=TRUE;
               } 
             }
             else{
               if(machine.byte==0x85)sentSucess=TRUE;
                 else {
-                printf("   2ERROR RECEIVED: %X\n", machine.byte);
+                //printf("   2ERROR RECEIVED: %X\n", machine.byte);
                 resend=TRUE;
               } 
             }
@@ -227,7 +227,7 @@ int llread(int fd, char * buffer){
   {
     read(fd, &byte, 1);
     
-    int BER = 1024;
+    int BER = 0;
     if (BER) {
         int percentage = rand() % BER;
         if (percentage == 1) {
@@ -248,8 +248,7 @@ int llread(int fd, char * buffer){
 
      if (i == 3)
     {
-      printf(" queremos: %X\n", !nr);
-      printf(" ficamos : %x\n", byte / 0x40);
+      
      
       if (nr == 1 && byte == C_NS1)
         descartarTrama = TRUE;
@@ -269,7 +268,7 @@ int llread(int fd, char * buffer){
   } 
 
   if (descartarTrama) {
-    printf("discarded\n");
+  
     send_rr(fd,nr);
     return -1;
   }
