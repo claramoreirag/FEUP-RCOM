@@ -67,26 +67,22 @@ int llopen(char * porta, char flag){
           assembleStateMachine(&machine,A_RSP_RECETOR,UA);
 
           do {
+            machine.state=START;
             conta++;
             i=0;
             resend = 0;
-
-           
             send_set(fd);
-
             alarm(dlayer.timeout);
-
-            while (machine.state != STOP && !resend) {       /* loop for input */
-              
-              res = read(fd,&buf[i],1);   /* returns after 1 char has been input */
+            while (machine.state != STOP && !resend) {      
+              res = read(fd,&buf[i],1);   
               if (res == 0) continue;
-              
               machine.byte = buf[i];
               changeState(&machine);
               i++;
             }
 
-          } while (conta< dlayer.numTransmissions && machine.state != STOP);
+          } while (conta< dlayer.numTransmissions 
+          && machine.state != STOP);
 
           
           if(conta>=dlayer.numTransmissions){
@@ -210,8 +206,6 @@ int llwrite(int fd, char * buffer, int length){
 }
 
 
-
-
 int llread(int fd, char * buffer){
 
   int descartarTrama = FALSE;
@@ -310,37 +304,38 @@ int llclose(int fd){
     char buf[255]="";
     conta=0;
     do {
-            conta++;
-            i=0;
-            resend = 0;
+      disc_machine.state=START;
+      conta++;
+      i=0;
+      resend = 0;
 
-         
-            send_disc(fd, TRANSMITTER);
+    
+      send_disc(fd, TRANSMITTER);
 
-            alarm(dlayer.timeout);
+      alarm(dlayer.timeout);
 
-            while (disc_machine.state != STOP && !resend) {       /* loop for input */
-              
-              res = read(fd,&buf[i],1);   /* returns after 1 char has been input */
-              if (res == 0) continue;
-             
-              disc_machine.byte = buf[i];
-              changeState(&disc_machine);
-              i++;
-            }
+      while (disc_machine.state != STOP && !resend) {       /* loop for input */
+        
+        res = read(fd,&buf[i],1);   /* returns after 1 char has been input */
+        if (res == 0) continue;
+        
+        disc_machine.byte = buf[i];
+        changeState(&disc_machine);
+        i++;
+      }
 
-          } while (conta< dlayer.numTransmissions && disc_machine.state != STOP);
+    } while (conta< dlayer.numTransmissions && disc_machine.state != STOP);
 
-          
-          if(conta>=dlayer.numTransmissions){
-            printf("DISC not received, exiting\n");
-            sleep(1);
-            close(fd);
-            return -1;
-          }
-          else printf("DISC received\n");
+    
+    if(conta>=dlayer.numTransmissions){
+      printf("DISC not received, exiting\n");
+      sleep(1);
+      close(fd);
+      return -1;
+    }
+    else printf("DISC received\n");
 
-          send_ua(fd, TRANSMITTER);
+    send_ua(fd, TRANSMITTER);
   }
   else if(global_flag == RECEIVER){
 

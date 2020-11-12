@@ -81,43 +81,33 @@ void send_rr(int fd, int ns)
 
 int byte_stuffing(char *buf, char *res, int size)
 {
-
   int j = 0;
-  for (int i = 0; i < size; i++)
-  {
-    if (buf[i] == FLAG)
-    {
+  for (int i = 0; i < size; i++){
+    if (buf[i] == FLAG){
       res[j] = ESC;
       res[++j] = FLAG ^ BYTE_STUFF;
     }
-    else if (buf[i] == ESC)
-    {
+    else if (buf[i] == ESC){
       res[j] = ESC;
       res[++j] = ESC ^ BYTE_STUFF;
     }
-    else
-    {
+    else{
       res[j] = buf[i];
     }
     j++;
   }
-
   return j;
 }
 
 int byte_destuffing(char *buf, char *res, int size)
 {
-
   int j = 0;
-  for (int i = 0; i < size - 1; i++)
-  {
-    if (buf[i] == ESC && buf[i + 1] == (FLAG ^ BYTE_STUFF))
-    {
+  for (int i = 0; i < size - 1; i++){
+    if (buf[i] == ESC && buf[i + 1] == (FLAG ^ BYTE_STUFF)){
       i++;
       res[j] = FLAG;
     }
-    else if (buf[i] == ESC && buf[i + 1] == (ESC ^ BYTE_STUFF))
-    {
+    else if (buf[i] == ESC && buf[i + 1] == (ESC ^ BYTE_STUFF)){
       i++;
       res[j] = ESC;
     }

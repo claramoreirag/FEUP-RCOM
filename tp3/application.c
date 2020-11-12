@@ -166,9 +166,10 @@ void parseControl(unsigned char * control){
 
 
 int main(int argc, char **argv){
+    clock_t start= clock();
     srand(time(0));
     parseArgs(argc, argv);
-
+   
     int fd = llopen(application.fileDescriptor, application.status);
 
     int error;
@@ -188,5 +189,8 @@ int main(int argc, char **argv){
     }
 
     llclose(fd);
+    clock_t end= clock();
+    float time = (float)(end - start) / CLOCKS_PER_SEC;
+    printf("Elapsed: %f seconds\n", time);
     return 0;
 }

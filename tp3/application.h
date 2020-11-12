@@ -7,7 +7,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <math.h>
-
+#include <time.h>
 #include "data_link.h"
 #include "macros.h"
 #include "interface.h"
