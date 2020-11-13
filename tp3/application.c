@@ -169,7 +169,7 @@ int main(int argc, char **argv){
     clock_t start= clock();
     srand(time(0));
     parseArgs(argc, argv);
-   
+    sleep(3);
     int fd = llopen(application.fileDescriptor, application.status);
 
     int error;
