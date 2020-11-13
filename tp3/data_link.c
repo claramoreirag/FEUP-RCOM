@@ -37,6 +37,7 @@ int llopen(char * porta, char flag){
       exit(-1);
     }
 
+
     bzero(&newtio, sizeof(newtio));
     newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
     newtio.c_iflag = IGNPAR;
