@@ -221,7 +221,7 @@ int llread(int fd, char * buffer){
   {
     read(fd, &byte, 1);
     
-    int BER = 250;
+    int BER = 500;
     if (BER) {
         int percentage = rand() % BER;
         if (percentage == 1) {
