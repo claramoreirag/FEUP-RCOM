@@ -13,7 +13,7 @@
 #include "statemachine.h"
 #include "utils.h"
 
-#define BAUDRATE B115200
+#define BAUDRATE B19200
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 
 void atende();

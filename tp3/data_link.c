@@ -25,7 +25,6 @@ int llopen(char * porta, char flag){
     int i;
    
     global_flag = flag;
-
     dlayer.timeout=5;
     dlayer.numTransmissions=6;
 
