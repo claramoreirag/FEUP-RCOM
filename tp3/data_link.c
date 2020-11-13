@@ -15,6 +15,7 @@ void atende()                   // atende alarme
 	printf("alarme # %d\n", conta);
  
 	resend=1;
+  
 }
 
 int llopen(char * porta, char flag){
