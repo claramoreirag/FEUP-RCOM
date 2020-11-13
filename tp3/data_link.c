@@ -158,8 +158,7 @@ int llwrite(int fd, char * buffer, int length){
       conta++;
       i=0;
       resend = 0;
-     
-
+    
       write(fd, frame,frameSize);
     
       alarm(dlayer.timeout);
