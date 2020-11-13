@@ -22,6 +22,8 @@ int parseArgs(int argc, char ** argv){
     else if(!strcmp(argv[1], "transmitter")){
         application.status = TRANSMITTER;
         strcpy(application.dataFileEmissor, argv[2]);
+
+        
     }
 
     else{
