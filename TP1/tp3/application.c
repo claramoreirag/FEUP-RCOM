@@ -11,7 +11,7 @@ int parseArgs(int argc, char ** argv){
     }
     strcpy(application.fileDescriptor, argv[3]); 
 
-    application.dataSize = 250;
+    application.dataSize = 200;
     
     if(!strcmp(argv[1], "receiver")){
         application.status = RECEIVER;

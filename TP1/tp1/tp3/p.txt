@@ -1,0 +1,21 @@
+if(!descartarTrama){
+    if(dataError){
+      send_rej(fd,nr);
+      
+
+      return -1;
+    }
+    else {
+      send_rr(fd,nr);    
+      if(nr==0)nr=1;
+      else nr=0;
+
+      return infoSize -1;
+    }
+  }
+  else{
+    printf("descartou\n");
+    send_rr(fd,nr);
+      
+    return -1;
+  }
